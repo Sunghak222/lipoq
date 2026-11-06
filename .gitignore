@@ -1,0 +1,31 @@
+# Local environments and Python build products
+.venv/
+.uv-cache/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.coverage
+htmlcov/
+
+# Downloaded upstream source, datasets, weights, and generated experiments
+vendor/
+artifacts/
+results/
+*.sqlite*
+*.log
+
+# Personal notes, translations, secrets, and editor/OS metadata
+.local/
+README.ko*.md
+*.local.*
+.env
+.env.*
+!.env.example
+.codex/
+.agents/
+.idea/
+.vscode/
+.DS_Store
+
