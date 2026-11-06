@@ -10,7 +10,7 @@ Parameterized circuit → measured bitstrings → lipid identities + molar fract
      SPSA update ← negative mean score ← pretrained COMET inference
 ```
 
-The search jointly selects one molecule from each of four groups—ionizable lipid, helper/phospholipid, sterol, and PEG lipid—and their molar fractions. Every decoded formulation sums exactly to one. Only the circuit angles are trained; the COMET weights remain frozen.
+The search jointly selects one molecule from each of four groups—ionizable lipid, phospholipid, sterol, and PEG lipid—and their molar fractions. Every decoded formulation sums exactly to one. Only the circuit angles are trained; the COMET weights remain frozen.
 
 **COMET scores are model predictions, not measured delivery efficacy, probabilities, or efficacy percentages.** This project does not demonstrate quantum advantage. It does not use a quadratic surrogate, QUBO, or QAOA.
 
@@ -48,16 +48,33 @@ Every run checks real COMET inference and compares the adapter output with the o
 
 | Setting | Default |
 |---|---|
-| Cell | DC2.4; the same checkpoint also supports B16-F10 |
+| Cell | DC2.4, a mouse dendritic cell line; COMET target `in_house_lnp_DC24_luc` |
 | Ionizable lipid | ALC-0315 or SM-102; COMET molecule IDs 0, 6 |
-| Helper lipid | DOPE or DSPC; IDs 1, 13 |
+| Phospholipid | DOPE or DSPC; IDs 1, 13 |
 | Sterol | Cholesterol or beta-sitosterol; IDs 2, 10 |
 | PEG lipid | C14-PEG or C18-PEG; IDs 3, 11 |
-| Molar fractions | IL 0.35–0.40, helper 0.15–0.20, sterol 0.38–0.49, PEG 0.01–0.02 |
+| Molar fractions | Ionizable 0.35–0.40, phospholipid 0.15–0.20, sterol 0.38–0.49, PEG 0.01–0.02 |
 | Fixed process conditions | N/P = 5.287338420806728; aqueous:organic mixing ratio = 1:1 |
 | Search space | 16 lipid combinations × 8 feasible fraction tuples = 128 formulations |
 | Circuit | 7 qubits, RY → linear CX chain → RY; 14 parameters |
 | Optimization | 128 shots, 12 SPSA iterations, seed 7 |
+
+The executed search used the **DC2.4 prediction target**; no cell experiments were performed. The same checkpoint also supports B16-F10, which was not used in this run. See the [DC2.4 cell-line reference](https://www.cellosaurus.org/CVCL_J409).
+
+For this small execution check, the configured ranges and steps generate exactly eight feasible fraction tuples. This list stays fixed during a run; SPSA learns the circuit's sampling probabilities over lipid identities and these tuples. Fractions are therefore searched on a discrete grid, not optimized as continuous variables. The eight tuples are not a COMET restriction or a list of experimentally validated recipes.
+
+| Tuple | Ionizable (mol%) | Phospholipid (mol%) | Sterol (mol%) | PEG (mol%) |
+|---|---:|---:|---:|---:|
+| 1 | 35 | 15 | 48 | 2 |
+| 2 | 35 | 15 | 49 | 1 |
+| 3 | 35 | 20 | 43 | 2 |
+| 4 | 35 | 20 | 44 | 1 |
+| 5 | 40 | 15 | 43 | 2 |
+| 6 | 40 | 15 | 44 | 1 |
+| 7 | 40 | 20 | 38 | 2 |
+| 8 | 40 | 20 | 39 | 1 |
+
+Every row sums to 100 mol%. Ionizable lipid takes 35 or 40 mol%, phospholipid 15 or 20 mol%, and PEG lipid 1 or 2 mol%; sterol fills the remainder within its configured 38–49 mol% range. The best sampled formulation used tuple 4. These lipid molar fractions are separate from the fixed aqueous:organic process mixing ratio of 1:1.
 
 Copy and edit [`configs/smoke.yaml`](configs/smoke.yaml) to change the cell, candidate molecule IDs, fraction ranges and resolution, circuit depth, shots, iterations, SPSA coefficients, or seeds. Relative paths are resolved against the YAML file's directory. Qubit count is derived from the encoding; an explicit count must match it. The local simulator is limited to 20 qubits.
 
@@ -69,7 +86,9 @@ Default fraction ranges lie inside the marginal ranges of the 2,069 four-compone
 
 Fractions use an integer grid. Only tuples whose integer sum equals the denominator are encoded, so every bitstring maps to a valid composition without a penalty term.
 
-Qiskit bitstrings are interpreted as `q[n-1]…q[0]`. From the least significant bit, fields select the ionizable lipid, helper, sterol, PEG lipid, and a feasible fraction tuple. Non-power-of-two field sizes use modulo mapping, which can give some candidates more aliases. The default configuration has no aliases; caching always deduplicates by composition.
+Qiskit bitstrings are interpreted as `q[n-1]…q[0]`. From the least significant bit, fields select the ionizable lipid, phospholipid, sterol, PEG lipid, and a feasible fraction tuple. Non-power-of-two field sizes use modulo mapping, which can give some candidates more aliases. The default configuration has no aliases; caching always deduplicates by composition.
+
+Configuration and output use the group key `phospholipid`. The COMET adapter preserves the upstream type identifier `HL` when reading the original dataset.
 
 ```text
 loss(theta) = -sum(measurement_count × COMET_score) / shots

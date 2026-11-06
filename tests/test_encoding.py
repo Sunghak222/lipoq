@@ -40,7 +40,7 @@ def test_invalid_search_rejected(cfg, problem):
     if problem == "infeasible":
         s["ratios"]["bounds"]["ionizable"] = dict(min=0.9, max=0.9, step=0.1)
     elif problem == "duplicate":
-        s["candidates"]["helper"] = [1, 1]
+        s["candidates"]["phospholipid"] = [1, 1]
     elif problem == "off_grid":
         s["ratios"]["bounds"]["peg"]["min"] = 0.0101
     else:

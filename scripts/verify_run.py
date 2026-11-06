@@ -14,6 +14,10 @@ from lnp_vqa.encoding import CompositionEncoder
 def verify(path):
     summary = json.loads((path / "summary.json").read_text())
     cfg = json.loads((path / "config.json").read_text())
+    # Read historical archives without rewriting their original configuration.
+    for section in (cfg["search"]["candidates"], cfg["search"]["ratios"]["bounds"]):
+        if "helper" in section and "phospholipid" not in section:
+            section["phospholipid"] = section.pop("helper")
     encoder = CompositionEncoder(cfg["search"])
     candidates = [json.loads(line) for line in (path / "candidates.jsonl").read_text().splitlines()]
     scores = {c["composition_key"]: c["comet_score"] for c in candidates}

@@ -4,7 +4,8 @@ from decimal import Decimal
 from itertools import product
 from math import prod
 
-GROUPS = ("ionizable", "helper", "sterol", "peg")
+GROUPS = ("ionizable", "phospholipid", "sterol", "peg")
+# Preserve the original COMET type identifiers; HL maps to phospholipid here.
 COMET_TYPES = ("IL", "HL", "CH", "PEG")
 
 
