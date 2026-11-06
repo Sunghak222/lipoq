@@ -24,6 +24,11 @@ class QuantumSampler:
                     self.circuit.cx(qubit, qubit + 1)
         self.rng = np.random.default_rng(seed)
 
+    def probabilities(self, theta):
+        """Exact simulator probabilities, for post-training analysis only."""
+        bound = self.circuit.assign_parameters(dict(zip(self.parameters, theta)))
+        return Statevector.from_instruction(bound).probabilities()
+
     def sample(self, theta, shots):
         bound = self.circuit.assign_parameters(dict(zip(self.parameters, theta)))
         state = Statevector.from_instruction(bound)

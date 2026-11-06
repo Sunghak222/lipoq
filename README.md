@@ -44,6 +44,24 @@ The installed CLI is also available as `.venv/bin/lipoq`. To check real pretrain
 
 Every run checks real COMET inference and compares the adapter output with the original input pipeline before optimization. Missing assets, invalid checksums, unsupported cells, invalid compositions, or inference errors stop the run. There is no synthetic-score fallback.
 
+## Exhaustive validation and comparison suite
+
+```bash
+.venv/bin/lipoq benchmark --config configs/benchmark.yaml
+```
+
+This command evaluates the entire 128-formulation base grid, runs VQA and uniform random search with five seeds and matched numbers of distinct evaluated compositions, computes exact base-grid learning statistics, and applies optional continuous ratio refinement to both methods. It repeats the comparison on an expanded 6,048-formulation search space. All search evaluations use the real pretrained COMET; exhaustive scores are reserved for post-hoc analysis.
+
+To also analyze a previously saved VQA run, append `--reference-run results/<run-directory>`. The saved model fingerprint, composition space, and cell condition must match the base experiment.
+
+[`configs/benchmark.yaml`](configs/benchmark.yaml) selects the two experiment configurations, seeds, and continuous refinement settings. Set `continuous.enabled: false` for discrete-only comparisons. The default refinement keeps the four lipid identities fixed for each of the top three discovered identity combinations, uses Powell with at most 60 objective calls per start, and respects the experiment's original fraction bounds while removing its grid restriction. VQA alone and VQA plus classical refinement are recorded separately; random search receives the identical refinement procedure.
+
+Results include `comparison.csv`, `summary.json`, `report.md`, the complete base score table, exact statevector probabilities, per-method evaluation records, and optimizer termination messages. Every method/seed starts with an empty score cache, so cached scores from earlier experiments do not make one method appear faster. See the [protocol and accounting](docs/benchmark.md) and [measured results](docs/benchmark-results.md).
+
+```bash
+.venv/bin/python scripts/verify_benchmark.py results/<benchmark-directory>
+```
+
 ## Default experiment
 
 | Setting | Default |
@@ -138,7 +156,7 @@ The best sampled formulation was **SM-102 / DOPE / Cholesterol / C18-PEG**, with
 .venv/bin/python scripts/verify_run.py results/<run-directory>
 ```
 
-All 14 unit tests passed. The saved-run audit checks shot-weighted means, composition validity, best-candidate consistency, evaluation counts, and parameter updates. Test spies are confined to unit tests; they are not selectable experiment backends.
+All 20 unit tests passed. The saved-run audits check shot-weighted means, composition validity, best-candidate consistency, matched evaluation budgets, exact expectations, and parameter updates. Test spies are confined to unit tests; they are not selectable experiment backends.
 
 ```text
 configs/smoke.yaml       Experiment settings
@@ -149,8 +167,11 @@ src/lnp_vqa/
   cache.py              Composition cache and shot-weighted evaluation
   config.py             Configuration validation
   results.py, cli.py    Output recording and command-line execution
+  benchmark*.py        Matched comparisons, exact analysis, and reports
+  continuous.py        Bounded ratio refinement with fixed lipid identities
 scripts/setup_comet.py   Pinned source/checkpoint setup
 scripts/verify_run.py    Audit saved experiment results
+scripts/verify_benchmark.py Audit the comparison suite without model calls
 tests/                  Encoding, sampling, cache, and failure tests
 ```
 
@@ -163,7 +184,7 @@ The internal module remains `lnp_vqa`; the project and installed command are nam
 - Sets `include_excipients=False` for this lipid-only checkpoint and fixes the molecule-dataset epoch to 1 for reproducible conformer selection. Upstream source is unmodified.
 - Uses one pretrained fold and one deterministic conformer per molecule, not an ensemble or an average over 11 conformers. Changing the preprocessing seed can change scores.
 - Outputs contrastive ranking scores. Do not interpret them as measured luciferase values or compare absolute scales across cells.
-- Uses a circuit-defined distribution over formulations. It is not a reproduction of the reference paper's complete QITE/VarQFS algorithm. No classical optimizer comparison, notebook, presentation, or separate UI is included.
+- Uses a circuit-defined distribution over formulations. It is not a reproduction of the reference paper's complete QITE/VarQFS algorithm. The separate benchmark includes random search and classical ratio refinement. No notebook, presentation, or separate UI is included.
 
 ## References
 
@@ -171,3 +192,4 @@ The internal module remains `lnp_vqa`; the project and installed command are nam
 - [Designing lipid nanoparticles using a transformer-based neural network](https://www.nature.com/articles/s41565-025-01975-4)
 - [Variational quantum algorithm for unconstrained black box binary optimization](https://quantum-journal.org/papers/q-2023-01-26-909/)
 - [Qiskit SPSA documentation](https://qiskit-community.github.io/qiskit-algorithms/stubs/qiskit_algorithms.optimizers.SPSA.html)
+- [SciPy Powell documentation](https://docs.scipy.org/doc/scipy-1.15.3/reference/optimize.minimize-powell.html)

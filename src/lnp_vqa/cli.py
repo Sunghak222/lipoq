@@ -19,9 +19,15 @@ from .results import create_run_dir, write_json
 def main():
     start = time.perf_counter()
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("run", "probe"), help="probe performs real inference/parity checks only")
+    parser.add_argument("command", choices=("run", "probe", "benchmark"), help="run an experiment, check inference, or run the comparison suite")
     parser.add_argument("--config", required=True)
+    parser.add_argument("--reference-run", help="optional saved run to audit with benchmark's exhaustive score table")
     args = parser.parse_args()
+    if args.command == "benchmark":
+        from .benchmark import run_benchmark
+        return run_benchmark(args.config, args.reference_run)
+    if args.reference_run:
+        parser.error("--reference-run is only supported with benchmark")
     run_dir = None
     cache = None
     oracle = None

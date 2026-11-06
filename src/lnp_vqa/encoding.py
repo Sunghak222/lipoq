@@ -94,6 +94,20 @@ class CompositionEncoder:
         ids = tuple(options[i % len(options)] for options, i in zip(self.candidates, indices))
         return Composition(ids, self.ratios[indices[-1] % len(self.ratios)], self.denominator)
 
+    def composition_at(self, index):
+        """Index unique formulations uniformly, independently of bitstring aliases."""
+        if not 0 <= index < self.cardinality:
+            raise IndexError(index)
+        index, ratio_index = divmod(int(index), len(self.ratios))
+        ids = []
+        for options in reversed(self.candidates):
+            index, lipid_index = divmod(index, len(options))
+            ids.append(options[lipid_index])
+        return Composition(tuple(reversed(ids)), self.ratios[ratio_index], self.denominator)
+
+    def compositions(self):
+        return (self.composition_at(i) for i in range(self.cardinality))
+
     def metadata(self):
         return {"num_qubits": self.num_qubits, "field_widths_lsb_first": dict(zip((*GROUPS, "ratio"), self.widths)),
                 "feasible_ratio_count": len(self.ratios), "unique_search_space_size": self.cardinality,

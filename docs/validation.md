@@ -45,7 +45,7 @@ Best sampled composition:
 
 A separate process with the same seed reproduced all measured counts, final angles, and the best candidate exactly. It reused all 108 cached search predictions, made zero new search predictions, and completed in 4.1552 seconds. Preflight still performed real inference. The 14 unit tests and saved-run arithmetic audits passed.
 
-The final additional measurement uses the final parameters with fresh shots, so its mean differs from the last monitored iteration. The search sampled 108 of 128 possible formulations; the recorded best is not asserted to be the global optimum. Runtime varies with hardware, system load, and cache state.
+The final additional measurement uses the final parameters with fresh shots, so its mean differs from the last monitored iteration. The initial search sampled 108 of 128 possible formulations. A subsequent exhaustive evaluation confirmed that its best candidate is the maximum of this finite grid; see the [benchmark results](benchmark-results.md). Runtime varies with hardware, system load, and cache state.
 
 ## Data scope
 
