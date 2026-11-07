@@ -1,0 +1,79 @@
+# LNP composition search. Paths are relative to this file.
+# Override seed with --seed; outputs are grouped under seed-<seed>.
+# Persistent cache saves inference time; wall times are cache-dependent.
+seed: 21
+comet:
+  repo: ../vendor/COMET
+  checkpoint: ../artifacts/comet_lipid_fold0.pt
+  preprocessing_seed: 0
+  batch_size: 16
+  cpu_threads: 4
+condition:
+  cell: DC2.4
+  np_ratio: 5.287338420806728
+  volumetric_ratio: '1:1'
+search:
+  candidates:
+    ionizable:
+    - 0
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    phospholipid:
+    - 1
+    - 13
+    sterol:
+    - 2
+    - 10
+    - 12
+    peg:
+    - 3
+    - 11
+  ratios:
+    denominator: 1000
+    bounds:
+      ionizable:
+        min: 0.3
+        max: 0.55
+        step: 0.05
+      phospholipid:
+        min: 0.1
+        max: 0.25
+        step: 0.05
+      sterol:
+        min: 0.15
+        max: 0.59
+        step: 0.01
+      peg:
+        min: 0.01
+        max: 0.03
+        step: 0.01
+circuit:
+  qubits: auto
+  depth: 1
+  shots: 128
+optimizer:
+  iterations: 200
+  learning_rate: 2.0
+  perturbation: 0.15
+  alpha: 0.602
+  gamma: 0.101
+  stability_constant: 10
+  resamplings: 2
+  paired_sampling: true
+  trust_region: true
+  last_avg: 5
+  initialization: uniform
+  early_stopping:
+    enabled: true
+    min_iterations: 20
+    patience: 3
+    window: 5
+    min_delta: 0.02
+    confidence_z: 1.0
+output:
+  directory: ../results/lnp_search
+  cache: ../artifacts/comet_scores.sqlite

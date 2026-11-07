@@ -14,18 +14,22 @@ dependencies = [
   "lmdb>=1.4,<4", "pandas>=2,<4", "scikit-learn>=1.2,<2",
   "tensorboardX>=2.5,<3", "tqdm>=4.64,<5", "rdkit>=2024,<2027",
   "tokenizers>=0.13,<0.24",
+  "matplotlib>=3.9,<3.12",
 ]
 
 [project.optional-dependencies]
 setup = ["gdown>=5,<7"]
 test = ["pytest>=8,<10"]
+notebook = ["nbformat>=5.10,<6", "nbclient>=0.10,<1", "ipykernel>=6.29,<8", "pylatexenc>=2.10,<3"]
 
 [project.scripts]
-lipoq = "lnp_vqa.cli:main"
-lnp-vqa = "lnp_vqa.cli:main"
+lipoq = "vqa.cli:main"
+lipoq-random = "random_search.cli:main"
+lipoq-plot = "vqa.plotting:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+namespaces = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

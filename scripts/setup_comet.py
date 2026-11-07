@@ -7,7 +7,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from lnp_vqa.comet import CHECKPOINT_ID, CHECKPOINT_SHA256, COMET_COMMIT, sha256
+from common.comet import CHECKPOINT_ID, CHECKPOINT_SHA256, COMET_COMMIT, sha256
 
 
 def main():

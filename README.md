@@ -2,21 +2,27 @@
 
 **Black-box variational quantum search for lipid nanoparticle compositions.**
 
-LipoQ is an experimental Python codebase for an IBM Quantum Qiskit Fall Fest project. It uses a shallow Qiskit circuit to sample lipid nanoparticle (LNP) formulations, scores them with a frozen pretrained [COMET](https://github.com/alvinchangw/COMET) model, and updates the circuit parameters with first-order SPSA.
+LipoQ is a research codebase developed for IBM Quantum Qiskit Fall Fest. A shallow parameterized circuit generates LNP formulations, a frozen pretrained [COMET](https://github.com/alvinchangw/COMET) model scores them, and first-order SPSA updates the circuit to increase the mean predicted score. A separate random-search baseline evaluates the same number of distinct formulations.
+
+Only the circuit parameters are trained. COMET predictions are ranking scores—not measured delivery efficacy, probabilities, or efficacy percentages. The experiments use a local simulator and do not establish quantum advantage.
+
+## Workflow
 
 ```text
-Parameterized circuit → measured bitstrings → lipid identities + molar fractions
-          ↑                                           ↓
-     SPSA update ← negative mean score ← pretrained COMET inference
+Circuit parameters → measured bitstrings → lipid identities + molar fractions
+        ↑                                               ↓
+   SPSA update ← negative shot-weighted mean ← frozen COMET predictions
 ```
 
-The search jointly selects one molecule from each of four groups—ionizable lipid, phospholipid, sterol, and PEG lipid—and their molar fractions. Every decoded formulation sums exactly to one. Only the circuit angles are trained; the COMET weights remain frozen.
+Each formulation contains one ionizable lipid, one phospholipid, one sterol, and one PEG lipid. Fractions are decoded from a feasible integer grid and sum exactly to one. Duplicate formulations share cached predictions; the best candidate is retained across all evaluations, including SPSA perturbations.
 
-**COMET scores are model predictions, not measured delivery efficacy, probabilities, or efficacy percentages.** This project does not demonstrate quantum advantage. It does not use a quadratic surrogate, QUBO, or QAOA.
+There is no surrogate objective, QUBO, QAOA, or second-order approximation. Every new composition is scored directly by the original pretrained COMET model.
 
-## Quick start
+## Installation
 
-Tested on macOS arm64 with Python 3.12, PyTorch CPU float32, and the local Qiskit statevector simulator. Install [uv](https://docs.astral.sh/uv/) and Git first. Internet access is needed for initial installation and the model download; experiments then run locally.
+Tested on macOS arm64 with Python 3.12, PyTorch CPU float32, and Qiskit's local statevector simulator. The reference machine is a MacBook Pro M3 Pro with 18 GB RAM.
+
+Install [uv](https://docs.astral.sh/uv/) and Git, then run:
 
 ```bash
 git clone https://github.com/Sunghak222/lipoq.git
@@ -28,168 +34,169 @@ uv pip install --python .venv/bin/python --no-deps --no-build-isolation -e .
 .venv/bin/python scripts/setup_comet.py
 ```
 
-Setup downloads the pinned upstream source and official lipid-only fold-0 checkpoint (approximately 614 MB), then verifies its SHA256. Downloaded source, data, and weights stay in the ignored `vendor/` and `artifacts/` directories. COMET's upstream license is preserved at `vendor/COMET/license.pdf`.
+The lockfile includes plotting and test dependencies. Setup downloads the pinned upstream COMET source and the official lipid-only fold-0 checkpoint, verifies its SHA256, and preserves the upstream license. Assets remain local under `vendor/` and `artifacts/`. Initial setup requires internet access; experiments then run locally.
 
-Run an experiment with one configuration file:
+For an existing checkout after a source-layout update, reinstall the editable package with the `uv pip install ... -e .` command above to refresh CLI entry points.
 
-```bash
-.venv/bin/python -m lnp_vqa run --config configs/smoke.yaml
-```
+## Run an experiment
 
-The installed CLI is also available as `.venv/bin/lipoq`. To check real pretrained inference without optimization:
+Run commands from the repository root.
 
-```bash
-.venv/bin/lipoq probe --config configs/smoke.yaml
-```
-
-Every run checks real COMET inference and compares the adapter output with the original input pipeline before optimization. Missing assets, invalid checksums, unsupported cells, invalid compositions, or inference errors stop the run. There is no synthetic-score fallback.
-
-## Exhaustive validation and comparison suite
+### 1. Check pretrained inference
 
 ```bash
-.venv/bin/lipoq benchmark --config configs/benchmark.yaml
+.venv/bin/lipoq probe --config configs/vqa.yaml
 ```
 
-This command evaluates the entire 128-formulation base grid, runs VQA and uniform random search with five seeds and matched numbers of distinct evaluated compositions, computes exact base-grid learning statistics, and applies optional continuous ratio refinement to both methods. It repeats the comparison on an expanded 6,048-formulation search space. All search evaluations use the real pretrained COMET; exhaustive scores are reserved for post-hoc analysis.
+This verifies real inference and compares the adapter with COMET's original input pipeline. Every VQA and random-search run performs this check as well. Missing assets, unsupported inputs, model mismatches, or failed inference stop execution; synthetic scores are never substituted.
 
-To also analyze a previously saved VQA run, append `--reference-run results/<run-directory>`. The saved model fingerprint, composition space, and cell condition must match the base experiment.
-
-[`configs/benchmark.yaml`](configs/benchmark.yaml) selects the two experiment configurations, seeds, and continuous refinement settings. Set `continuous.enabled: false` for discrete-only comparisons. The default refinement keeps the four lipid identities fixed for each of the top three discovered identity combinations, uses Powell with at most 60 objective calls per start, and respects the experiment's original fraction bounds while removing its grid restriction. VQA alone and VQA plus classical refinement are recorded separately; random search receives the identical refinement procedure.
-
-Results include `comparison.csv`, `summary.json`, `report.md`, the complete base score table, exact statevector probabilities, per-method evaluation records, and optimizer termination messages. Every method/seed starts with an empty score cache, so cached scores from earlier experiments do not make one method appear faster. See the [protocol and accounting](docs/benchmark.md) and [measured results](docs/benchmark-results.md).
+### 2. Train the VQA
 
 ```bash
-.venv/bin/python scripts/verify_benchmark.py results/<benchmark-directory>
+.venv/bin/lipoq run --config configs/vqa.yaml --seed 21
 ```
+
+Change `--seed` to `22` or `23` for independent runs. Edit the configuration to change the search space, cell/process conditions, circuit, shots, or optimizer. `--dry-run` validates settings and prints the experiment size without loading COMET or running an experiment.
+
+Each run writes to `results/lnp_search/vqa/seed-<seed>/run-<timestamp>-<id>/`. On completion, learning and discovery curves are exported automatically as PNG and SVG in that run's `plots/` directory.
+
+### 3. Run the matched random baseline
+
+```bash
+.venv/bin/lipoq-random --reference-run results/lnp_search/vqa/seed-21
+```
+
+The reference may be an exact completed VQA run or its seed directory. A seed directory selects the latest completed run by timestamp, never by score. Random search inherits its COMET model, cell/process conditions, lipid candidates, fraction grid, and distinct-composition budget. It samples uniformly without replacement over compositions, independently of bitstring aliases, and defaults to the same seed.
+
+Random results are written to `results/lnp_search/random/seed-<seed>/run-<timestamp>-<id>/`. `metrics/comparison.csv` and `.json` summarize the matched pair; `plots/comparison.png` and `.svg` are generated automatically. VQA is not rerun. Use `--seed`, `--output`, or `--dry-run` to override the random seed, output root, or inspect the plan.
+
+**Timing policy:** random starts with a fresh in-memory score cache. VQA may reuse its persistent cache. Reports retain actual inference counts and timings but mark elapsed times as not directly comparable under these conditions. The matched budget is the number of distinct compositions encountered, including cached VQA candidates; preflight evaluations are recorded separately.
+
+### 4. Plot saved runs
+
+```bash
+.venv/bin/lipoq-plot results/lnp_search
+```
+
+This reads existing records only and creates combined figures across seeds. It uses the latest run per seed, rejects incompatible settings, preserves actual stopping lengths, and labels unfinished runs as snapshots. Add `--complete-only`, `--window 5`, or `--output <directory>` as needed.
+
+Module alternatives are `python -m vqa` and `python -m random_search`. The standalone plotting wrapper remains available as `scripts/plot_training.py`.
+
+## Submission notebook
+
+[`notebooks/LipoQ_Submission.ipynb`](notebooks/LipoQ_Submission.ipynb) is the **single-file submission**, below the 20 MB limit. Submit this `.ipynb` alone. It embeds the project source, configuration, compact real experiment evidence, executed tables, and figures. No repository checkout, ZIP, or companion data files are needed to read or run the submitted notebook.
+
+To read it, open the saved notebook without executing. To rerun it independently, select a Python 3.12 kernel and Run All from a writable directory. Setup cells restore the embedded source and evidence into `lipoq_workspace`, install tested dependencies when needed, and download the pinned official COMET source and checkpoint. The approximately 586 MiB checkpoint is external to the submission file, so the first run requires internet access and Git. Verified cached assets allow offline reruns. Optional environment variables `LIPOQ_WORKSPACE`, `LIPOQ_COMET_REPO`, and `LIPOQ_COMET_CHECKPOINT` customize these locations.
+
+The submitted notebook is a frozen, independently runnable snapshot; repository refactors do not rewrite it. The embedded evidence comes from `notebooks/data/`. It contains the completed seed 21 VQA/random pair and explicitly marks seeds 22 and 23 as unavailable. Checks cover all 16,384 encoded states, archived shot-weighted means, and exact generation probabilities of the best discovered composition. No exhaustive COMET optimum, exact full-space mean, or continuous refinement is claimed.
+
+After the normal installation and COMET asset setup, execute the notebook with:
+
+```bash
+uv pip install --python .venv/bin/python -r requirements-notebook.lock
+.venv/bin/python scripts/execute_notebook.py
+```
+
+Execution runs a real COMET preflight, one example prediction, and a three-update demonstration with 32 shots per call. Full main experiments are not launched. Demo outputs are isolated in the generated workspace. This optional helper selects the current Python environment and reuses already-downloaded repository assets; it is not required by the submitted notebook.
+
+After completing additional seeds, refresh the snapshot and rerun the notebook:
+
+```bash
+.venv/bin/python scripts/prepare_notebook_data.py --seeds 21 22 23
+.venv/bin/python scripts/build_submission_notebook.py
+.venv/bin/python scripts/execute_notebook.py
+```
+
+Snapshot preparation only reads and verifies existing archives. It selects the latest completed VQA per requested seed and the latest completed random run referencing that exact VQA archive, retaining source-file hashes and marking missing runs explicitly. The build step embeds current source and evidence and clears stale cell outputs before re-execution. Choose a fresh `LIPOQ_WORKSPACE` if previously generated source differs from the new bundle.
 
 ## Default experiment
 
-| Setting | Default |
+[`configs/vqa.yaml`](configs/vqa.yaml) defines the LNP composition search experiment.
+
+| Setting | Value |
 |---|---|
-| Cell | DC2.4, a mouse dendritic cell line; COMET target `in_house_lnp_DC24_luc` |
-| Ionizable lipid | ALC-0315 or SM-102; COMET molecule IDs 0, 6 |
-| Phospholipid | DOPE or DSPC; IDs 1, 13 |
-| Sterol | Cholesterol or beta-sitosterol; IDs 2, 10 |
-| PEG lipid | C14-PEG or C18-PEG; IDs 3, 11 |
-| Molar fractions | Ionizable 0.35–0.40, phospholipid 0.15–0.20, sterol 0.38–0.49, PEG 0.01–0.02 |
+| Cell | DC2.4; COMET target `in_house_lnp_DC24_luc` |
+| Ionizable lipid IDs | 0, 4, 5, 6, 7, 8, 9 |
+| Phospholipid IDs | 1, 13 |
+| Sterol IDs | 2, 10, 12 |
+| PEG lipid IDs | 3, 11 |
+| Search space | 84 lipid combinations × 72 feasible fraction tuples = 6,048 compositions |
+| Circuit | 14 qubits; RY → linear CX chain → RY; 28 parameters |
+| Sampling | 128 shots per objective call |
+| Optimization | First-order SPSA; two perturbation directions per update; at most 200 updates |
+| Stabilization | Uniform bitstring initialization, paired sampling, bounded update norm, final five-vector parameter average |
+| Early stopping | Minimum 20 updates; five-update windows; patience 3; minimum improvement 0.02 plus a sampling-error margin |
 | Fixed process conditions | N/P = 5.287338420806728; aqueous:organic mixing ratio = 1:1 |
-| Search space | 16 lipid combinations × 8 feasible fraction tuples = 128 formulations |
-| Circuit | 7 qubits, RY → linear CX chain → RY; 14 parameters |
-| Optimization | 128 shots, 12 SPSA iterations, seed 7 |
 
-The executed search used the **DC2.4 prediction target**; no cell experiments were performed. The same checkpoint also supports B16-F10, which was not used in this run. See the [DC2.4 cell-line reference](https://www.cellosaurus.org/CVCL_J409).
+| Component | Configured molar-fraction range | Grid step |
+|---|---:|---:|
+| Ionizable lipid | 0.30–0.55 | 0.05 |
+| Phospholipid | 0.10–0.25 | 0.05 |
+| Sterol | 0.15–0.59 | 0.01 |
+| PEG lipid | 0.01–0.03 | 0.01 |
 
-For this small execution check, the configured ranges and steps generate exactly eight feasible fraction tuples. This list stays fixed during a run; SPSA learns the circuit's sampling probabilities over lipid identities and these tuples. Fractions are therefore searched on a discrete grid, not optimized as continuous variables. The eight tuples are not a COMET restriction or a list of experimentally validated recipes.
+The sum constraint makes the feasible sterol minimum 0.17. Ratios remain discrete during a run; SPSA learns the probability distribution over the encoded formulations. Non-power-of-two fields use modulo decoding, so uniform bitstrings are not uniform over unique compositions. The random baseline is uniform over compositions.
 
-| Tuple | Ionizable (mol%) | Phospholipid (mol%) | Sterol (mol%) | PEG (mol%) |
-|---|---:|---:|---:|---:|
-| 1 | 35 | 15 | 48 | 2 |
-| 2 | 35 | 15 | 49 | 1 |
-| 3 | 35 | 20 | 43 | 2 |
-| 4 | 35 | 20 | 44 | 1 |
-| 5 | 40 | 15 | 43 | 2 |
-| 6 | 40 | 15 | 44 | 1 |
-| 7 | 40 | 20 | 38 | 2 |
-| 8 | 40 | 20 | 39 | 1 |
+## Results and interpretation
 
-Every row sums to 100 mol%. Ionizable lipid takes 35 or 40 mol%, phospholipid 15 or 20 mol%, and PEG lipid 1 or 2 mol%; sterol fills the remainder within its configured 38–49 mol% range. The best sampled formulation used tuple 4. These lipid molar fractions are separate from the fixed aqueous:organic process mixing ratio of 1:1.
+| Output | Purpose |
+|---|---|
+| `summary.json`, `best.json` | Run status, best formulation, counts, timings, and termination reason |
+| `metadata/config.json`, `metadata/encoding.json` | Resolved settings, fraction grid, and bit allocation |
+| `candidates.jsonl` | Compact identity, fractions, score, and cache status for each distinct composition |
+| `metrics/history.csv`, `metrics/evaluations.jsonl` | VQA monitoring and every objective call |
+| `metrics/early_stopping.jsonl` | VQA plateau checks |
+| `metrics/progress.csv`, `metrics/comparison.*` | Random progress and the matched comparison |
+| `metadata/model.json`, `preflight.json`, `catalog.json`, `domain.json` | Model provenance, input parity, molecular inputs, and domain checks |
+| `plots/`, `plots/plot_status.json`, `metrics/analysis_status.json` | Figures, plotting metadata, and separate export timing/status |
+| `summary.json`, `logs/traceback.txt` | Failure or interruption status, partial best/counts, and traceback |
 
-Copy and edit [`configs/smoke.yaml`](configs/smoke.yaml) to change the cell, candidate molecule IDs, fraction ranges and resolution, circuit depth, shots, iterations, SPSA coefficients, or seeds. Relative paths are resolved against the YAML file's directory. Qubit count is derived from the encoding; an explicit count must match it. The local simulator is limited to 20 qubits.
+VQA saves initial/final parameters, optimizer state, and measured circuit QASM under `state/`. Source/configuration/model provenance lives under `metadata/`; model logs live under `logs/`. Partial results remain available after interruption; automatic optimizer resume is not implemented. Plotting or comparison-report failures are reported separately from completed searches. Experiment timing ends before postprocessing.
 
-Molecules, SMILES, and 3D conformers come directly from the pinned COMET lipid-only dataset. PEG lipids retain COMET's shortened molecular representations. Display names are labels; the recorded molecule IDs and SMILES define the actual model input. Arbitrary new SMILES are not supported. The generated `catalog.json` lists available upstream molecules and their groups.
+New archives use schema version 2. Existing flat archives remain readable and are not moved or rewritten. Molecular names and SMILES appear once in `metadata/catalog.json`; `best.json` remains fully expanded. The current/partial status is always in `summary.json`, so a failed run cannot also look completed.
 
-Default fraction ranges lie inside the marginal ranges of the 2,069 four-component formulations in the 3,119-record deployment dataset. Process conditions come from example record 0. These bounds do not establish that every new combination is within the model's validated joint domain. See [validation and scope](docs/validation.md).
+The learning figure separates the shot-weighted mean score from the best score found. Thin lines are sampled means; thick lines are trailing averages; shaded bands show ±1 sampling standard error. These are not exact circuit expectations or COMET model uncertainty. The final diamond uses a fresh measurement of the returned, averaged parameters and can differ from the last monitored point. A high best score alone does not demonstrate improvement in the generated distribution.
 
-## Encoding and objective
+The retained local seed 21 pair used 4,682 distinct compositions per method. Both found a best COMET score of **8.464256**. VQA's sampled mean changed from **−3.060046** to **5.158117**, stopping after 105 updates. This is one descriptive pair, not a statistical comparison. Raw experiments are local and excluded from Git.
 
-Fractions use an integer grid. Only tuples whose integer sum equals the denominator are encoded, so every bitstring maps to a valid composition without a penalty term.
-
-Qiskit bitstrings are interpreted as `q[n-1]…q[0]`. From the least significant bit, fields select the ionizable lipid, phospholipid, sterol, PEG lipid, and a feasible fraction tuple. Non-power-of-two field sizes use modulo mapping, which can give some candidates more aliases. The default configuration has no aliases; caching always deduplicates by composition.
-
-Configuration and output use the group key `phospholipid`. The COMET adapter preserves the upstream type identifier `HL` when reading the original dataset.
+## Code organization
 
 ```text
-loss(theta) = -sum(measurement_count × COMET_score) / shots
+src/
+  common/         Shared experiment lifecycle, archive readers, frozen COMET,
+                  composition encoding, evaluator/cache, and result utilities
+  vqa/            Search adapter, circuit, SPSA, early stopping, audit, and plots
+  random_search/  Search adapter, uniform sampler, matched-budget CLI, and reports
+configs/
+  vqa.yaml        LNP composition search settings
+scripts/
+  setup_comet.py  Pinned source/checkpoint setup
+  verify_run.py   Audit saved VQA results without inference
+  plot_training.py  Plot saved learning curves
+tests/           Common, VQA, and random-search unit tests
 ```
 
-SPSA minimizes this shot-weighted loss. Each iteration uses two perturbation evaluations and a measurement of the updated circuit. Including initial and final measurements, the default run makes 38 objective calls. Finite-shot noise means the mean need not increase at every iteration. The best candidate is retained across **all** sampled evaluations, including perturbations.
+`common` does not depend on either search implementation. Random search does not import Qiskit or the VQA optimizer. Both methods use `common.experiment.run_experiment` for model setup, preflight, cache lifetime, timing, completion/failure records, and postprocessing. New methods implement a `SearchContext -> dict` function; they do not copy CLI lifecycle code. See [architecture and extension guide](docs/architecture.md). Generated experiments, downloaded model assets, and presentation files are excluded from source control.
 
-## Outputs and caching
-
-Each experiment creates a new `results/run-<timestamp>-<id>/` directory.
-
-| Output | Contents |
-|---|---|
-| `summary.json`, `best.json` | Best score, four lipids and fractions, initial/final means, timing, and evaluation counts |
-| `history.csv` | Initial and per-iteration mean, sampling standard error, and best-so-far score |
-| `evaluations.jsonl` | Every objective call's counts, angles, sampling seed, and scores |
-| `candidates.jsonl` | Unique sampled formulations, predictions, and persistent-cache status |
-| `config.json`, `encoding.json` | Resolved configuration, fraction grid, and bit allocation |
-| `model.json`, `preflight.json`, `domain.json`, `catalog.json` | Provenance, inference parity, data bounds, and molecular inputs |
-| `initial_parameters.npy`, `final_parameters.npy`, `optimizer_state.json`, `circuit.qasm` | Circuit and optimization state |
-| `environment.json`, `comet_load.log` | Runtime versions and upstream loading output |
-
-Timing separates model loading, COMET input preparation and inference, forward passes, preflight, and search. Total time covers the CLI execution body through optimization, excluding installation and downloads. The three preflight input evaluations are reported separately from search evaluations.
-
-The SQLite cache is namespaced by model/data hashes, preprocessing seed, cell, N/P, mixing ratio, and adapter version. Repeated runs can reuse scores while repeating sampling and SPSA updates. Set a new cache path to measure inference with an empty cache. On interruption, completed cache entries, candidates, progress, best results, and `failure.json` remain available; automatic optimizer resume is not implemented.
-
-## Verified local run
-
-The default experiment was executed with the **real pretrained checkpoint** on macOS arm64 CPU:
-
-| Metric | Observed result |
-|---|---:|
-| Unique formulations evaluated | 108 |
-| Initial mean COMET score | 2.513718 |
-| Mean after the 12th update | 5.240544 |
-| Final additional measurement mean | 5.574888 |
-| Best sampled score | 7.800376 |
-| Total time, empty cache | 8.52 s |
-| COMET evaluation time, including preflight | 3.61 s |
-
-The best sampled formulation was **SM-102 / DOPE / Cholesterol / C18-PEG**, with molar fractions **0.35 / 0.20 / 0.44 / 0.01**. A repeat reproduced measured counts and final parameters exactly and reused all 108 search predictions from cache. This is a small, single-seed execution check, not a statistical benchmark or evidence of biological efficacy. See the [validation record](docs/validation.md) for provenance and limitations.
-
-## Tests and code
+## Validation
 
 ```bash
 .venv/bin/python -m pytest -q
-.venv/bin/python scripts/verify_run.py results/<run-directory>
+.venv/bin/python scripts/verify_run.py results/lnp_search/vqa/seed-21/<run-directory>
 ```
 
-All 20 unit tests passed. The saved-run audits check shot-weighted means, composition validity, best-candidate consistency, matched evaluation budgets, exact expectations, and parameter updates. Test spies are confined to unit tests; they are not selectable experiment backends.
+Tests cover valid compositions, endian conventions, finite-shot sampling, weighted objectives, cache deduplication, SPSA accounting, early stopping, matched random budgets, model compatibility checks, and output generation. Small test-only objectives do not exist as selectable experiment backends.
 
-```text
-configs/smoke.yaml       Experiment settings
-src/lnp_vqa/
-  comet.py              Frozen original COMET and its input pipeline
-  encoding.py           Lipid/fraction encoding and decoding
-  vqa.py                Qiskit circuit, sampling, and first-order SPSA
-  cache.py              Composition cache and shot-weighted evaluation
-  config.py             Configuration validation
-  results.py, cli.py    Output recording and command-line execution
-  benchmark*.py        Matched comparisons, exact analysis, and reports
-  continuous.py        Bounded ratio refinement with fixed lipid identities
-scripts/setup_comet.py   Pinned source/checkpoint setup
-scripts/verify_run.py    Audit saved experiment results
-scripts/verify_benchmark.py Audit the comparison suite without model calls
-tests/                  Encoding, sampling, cache, and failure tests
-```
+## Scope and provenance
 
-The internal module remains `lnp_vqa`; the project and installed command are named **LipoQ**.
+COMET assets are pinned to upstream commit `eee99d2055bad3b7d253c436b3eb7603550b37c5`. The supported checkpoint SHA256 is `8de532194feead3662a33d62855801ebe55b02014eb05e3eedbeb27ee60f7335`. Inference uses the original CPU fallback, frozen float32 weights, one fold, and one deterministic original conformer per molecule. PEG lipids retain the upstream shortened representations. Arbitrary new SMILES are not supported.
 
-## Compatibility and limitations
-
-- Uses COMET's original PyTorch CPU fallback instead of CUDA fused kernels. Upstream `fused_* is not installed` messages are expected on this path.
-- Verifies the checkpoint hash before loading the legacy checkpoint with `weights_only=False`; loads all model weights with `strict=True`.
-- Sets `include_excipients=False` for this lipid-only checkpoint and fixes the molecule-dataset epoch to 1 for reproducible conformer selection. Upstream source is unmodified.
-- Uses one pretrained fold and one deterministic conformer per molecule, not an ensemble or an average over 11 conformers. Changing the preprocessing seed can change scores.
-- Outputs contrastive ranking scores. Do not interpret them as measured luciferase values or compare absolute scales across cells.
-- Uses a circuit-defined distribution over formulations. It is not a reproduction of the reference paper's complete QITE/VarQFS algorithm. The separate benchmark includes random search and classical ratio refinement. No notebook, presentation, or separate UI is included.
+Known molecules and fractions within observed marginal bounds do not establish that every joint composition is within COMET's validated domain. Early stopping is a plateau heuristic, not a convergence certificate. Best-found scores are not proven global optima. See the [experimental protocol](docs/protocol.md) for objective, accounting, and model-scope details.
 
 ## References
 
 - [COMET source and pretrained assets](https://github.com/alvinchangw/COMET)
 - [Designing lipid nanoparticles using a transformer-based neural network](https://www.nature.com/articles/s41565-025-01975-4)
 - [Variational quantum algorithm for unconstrained black box binary optimization](https://quantum-journal.org/papers/q-2023-01-26-909/)
-- [Qiskit SPSA documentation](https://qiskit-community.github.io/qiskit-algorithms/stubs/qiskit_algorithms.optimizers.SPSA.html)
-- [SciPy Powell documentation](https://docs.scipy.org/doc/scipy-1.15.3/reference/optimize.minimize-powell.html)
+
+LipoQ implements a circuit-distribution search inspired by black-box variational optimization; it is not a reproduction of the reference paper's complete QITE/VarQFS algorithm.
