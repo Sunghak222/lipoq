@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="976" height="548" viewBox="0 0 976 548" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="976" height="438" viewBox="0 84 976 438" role="img" aria-labelledby="title description">
   <title id="title">LipoQ experiment workflow</title>
   <desc id="description">A parameterized quantum circuit produces measured bitstrings, decoded into four lipid identities and discrete molar fractions. Frozen COMET scores each new composition and caches repeated inputs. The shot-weighted mean score drives SPSA updates to the circuit. An independent random-search run uses the same evaluator at a matched distinct-composition budget. Both methods save their best candidate, scores, costs, and plots. Predictions are not measured efficacy.</desc>
   <defs>
@@ -7,7 +7,6 @@
     <marker id="baseline" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ad691d"/></marker>
     <style>
       text { font-family: Arial, Helvetica, sans-serif; }
-      .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.8px; fill: #52677d; }
       .heading { font-size: 20px; font-weight: 700; fill: #172b40; }
       .body { font-size: 14px; fill: #45596d; }
       .label { font-size: 12px; font-weight: 700; letter-spacing: .8px; }
@@ -15,9 +14,7 @@
       .loop { fill: none; stroke: #7554bc; stroke-width: 2; marker-end: url(#feedback); }
     </style>
   </defs>
-  <rect width="976" height="548" rx="16" fill="#ffffff"/>
-  <text x="24" y="30" class="eyebrow">LIPOQ / BLACK-BOX VARIATIONAL SEARCH</text>
-  <text x="24" y="57" class="body">Configured inputs: lipid candidates, fraction bounds, cell and process conditions</text>
+  <rect x="0" y="84" width="976" height="438" rx="16" fill="#ffffff"/>
 
   <!-- Main generation and evaluation path. -->
   <path class="edge" d="M296 152 H344"/>
@@ -64,8 +61,4 @@
   <text x="680" y="439" class="heading">Random search baseline</text>
   <text x="680" y="463" class="body">Same distinct-composition budget</text>
   <text x="680" y="486" class="body">Independent run; fresh score cache</text>
-
-  <text x="24" y="441" class="body">One molecule per group:</text>
-  <text x="24" y="464" class="body">ionizable lipid · phospholipid · sterol · PEG lipid</text>
-  <text x="24" y="529" class="body">COMET scores are predictions, not measured delivery efficacy. The evaluator remains frozen.</text>
 </svg>

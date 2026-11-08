@@ -1,14 +1,21 @@
-# LipoQ
+<h1 align="center">
+  LipoQ: Quantum Search for<br>
+  Lipid Nanoparticle Compositions
+</h1>
 
-**Black-box variational quantum search for lipid nanoparticle compositions.**
+<p align="center">
+  <strong>Sunghak Heo</strong> &nbsp;·&nbsp; <strong>Pan Yu Mok</strong>
+</p>
+
+<p align="center">
+  <img src="docs/assets/workflow.svg" width="960" alt="LipoQ workflow: quantum circuit, composition decoding, frozen COMET evaluation, SPSA updates, and matched random baseline">
+</p>
+
+## Overview
 
 LipoQ is a research codebase for quantum-assisted lipid nanoparticle design. A shallow parameterized circuit generates LNP formulations, a frozen pretrained [COMET](https://github.com/alvinchangw/COMET) model scores them, and first-order SPSA updates the circuit to increase the mean predicted score. A separate random-search baseline evaluates the same number of distinct formulations.
 
 Only the circuit parameters are trained. COMET predictions are ranking scores—not measured delivery efficacy, probabilities, or efficacy percentages. The experiments use a local simulator and do not establish quantum advantage.
-
-## Workflow
-
-![LipoQ workflow: quantum circuit, composition decoding, frozen COMET evaluation, SPSA updates, and matched random baseline](docs/assets/workflow.svg)
 
 Each formulation contains one ionizable lipid, one phospholipid, one sterol, and one PEG lipid. Fractions are decoded from a feasible integer grid and sum exactly to one. Duplicate formulations share cached predictions; the best candidate is retained across all evaluations, including SPSA perturbations.
 
