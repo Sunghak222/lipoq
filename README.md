@@ -8,6 +8,11 @@
 </p>
 
 <p align="center">
+  <strong>Winner — Qiskit Fall Fest Hackathon 2026, University of Waterloo</strong><br>
+  Organized by Waterloo Quantum Club in partnership with IBM.
+</p>
+
+<p align="center">
   <img src="docs/assets/workflow.svg" width="960" alt="LipoQ workflow: quantum circuit, composition decoding, frozen COMET evaluation, SPSA updates, and matched random baseline">
 </p>
 
