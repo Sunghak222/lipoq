@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="976" height="548" viewBox="0 0 976 548" role="img" aria-labelledby="title description">
+  <title id="title">LipoQ experiment workflow</title>
+  <desc id="description">A parameterized quantum circuit produces measured bitstrings, decoded into four lipid identities and discrete molar fractions. Frozen COMET scores each new composition and caches repeated inputs. The shot-weighted mean score drives SPSA updates to the circuit. An independent random-search run uses the same evaluator at a matched distinct-composition budget. Both methods save their best candidate, scores, costs, and plots. Predictions are not measured efficacy.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#52677d"/></marker>
+    <marker id="feedback" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7554bc"/></marker>
+    <marker id="baseline" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ad691d"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; }
+      .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.8px; fill: #52677d; }
+      .heading { font-size: 20px; font-weight: 700; fill: #172b40; }
+      .body { font-size: 14px; fill: #45596d; }
+      .label { font-size: 12px; font-weight: 700; letter-spacing: .8px; }
+      .edge { fill: none; stroke: #52677d; stroke-width: 2; marker-end: url(#arrow); }
+      .loop { fill: none; stroke: #7554bc; stroke-width: 2; marker-end: url(#feedback); }
+    </style>
+  </defs>
+  <rect width="976" height="548" rx="16" fill="#ffffff"/>
+  <text x="24" y="30" class="eyebrow">LIPOQ / BLACK-BOX VARIATIONAL SEARCH</text>
+  <text x="24" y="57" class="body">Configured inputs: lipid candidates, fraction bounds, cell and process conditions</text>
+
+  <!-- Main generation and evaluation path. -->
+  <path class="edge" d="M296 152 H344"/>
+  <path class="edge" d="M616 152 H664"/>
+  <path class="edge" d="M742 204 V238 H480 V272"/>
+  <path class="loop" d="M344 324 H296"/>
+  <path class="loop" d="M160 272 V204"/>
+  <path class="edge" d="M832 204 V272"/>
+
+  <rect x="24" y="100" width="272" height="104" rx="12" fill="#f3effb" stroke="#c8b9e6"/>
+  <text x="40" y="124" class="label" fill="#7554bc">QUANTUM GENERATOR</text>
+  <text x="40" y="152" class="heading">Parameterized circuit</text>
+  <text x="40" y="177" class="body">Qiskit simulation → measured bitstrings</text>
+
+  <rect x="344" y="100" width="272" height="104" rx="12" fill="#f4f7fb" stroke="#cbd5e1"/>
+  <text x="360" y="124" class="label" fill="#52677d">COMPOSITION DECODER</text>
+  <text x="360" y="152" class="heading">Four lipid identities</text>
+  <text x="360" y="177" class="body">Discrete fractions summing to 1</text>
+
+  <rect x="664" y="100" width="272" height="104" rx="12" fill="#edf5fc" stroke="#aac9e6"/>
+  <text x="680" y="124" class="label" fill="#2367a6">BLACK-BOX EVALUATOR</text>
+  <text x="680" y="152" class="heading">COMET + score cache</text>
+  <text x="680" y="177" class="body">Frozen pretrained delivery predictions</text>
+
+  <rect x="24" y="272" width="272" height="104" rx="12" fill="#f3effb" stroke="#c8b9e6"/>
+  <text x="40" y="296" class="label" fill="#7554bc">LEARNING LOOP</text>
+  <text x="40" y="324" class="heading">Update circuit angles</text>
+  <text x="40" y="349" class="body">SPSA maximizes the mean score</text>
+
+  <rect x="344" y="272" width="272" height="104" rx="12" fill="#f4f7fb" stroke="#cbd5e1"/>
+  <text x="360" y="296" class="label" fill="#52677d">VQA OBJECTIVE</text>
+  <text x="360" y="324" class="heading">Aggregate predictions</text>
+  <text x="360" y="349" class="body">Shot-weighted mean COMET score</text>
+
+  <rect x="664" y="272" width="272" height="104" rx="12" fill="#edf8f5" stroke="#b3d8cc"/>
+  <text x="680" y="296" class="label" fill="#25705a">RESULTS FOR EACH METHOD</text>
+  <text x="680" y="324" class="heading">Save experiment results</text>
+  <text x="680" y="347" class="body">Best formulation, scores, counts, timing</text>
+  <text x="680" y="366" class="body">Learning curves and comparisons</text>
+
+  <!-- Random is a separate run, sharing the evaluator implementation only. -->
+  <path d="M936 459 H956 V152 H936" fill="none" stroke="#ad691d" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#baseline)"/>
+  <rect x="664" y="412" width="272" height="94" rx="12" fill="#fff6ea" stroke="#e8cba2"/>
+  <text x="680" y="439" class="heading">Random search baseline</text>
+  <text x="680" y="463" class="body">Same distinct-composition budget</text>
+  <text x="680" y="486" class="body">Independent run; fresh score cache</text>
+
+  <text x="24" y="441" class="body">One molecule per group:</text>
+  <text x="24" y="464" class="body">ionizable lipid · phospholipid · sterol · PEG lipid</text>
+  <text x="24" y="529" class="body">COMET scores are predictions, not measured delivery efficacy. The evaluator remains frozen.</text>
+</svg>

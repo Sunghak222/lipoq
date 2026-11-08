@@ -124,8 +124,8 @@ valid VQA fixed point with unchanged parameters. Algorithms have focused tests
 for their own behavior. Test-only oracles are injected inside tests; no synthetic
 backend is selectable from production CLIs.
 
-The archived seed 21 pair and submitted notebook are immutable evidence of the
-earlier implementation. They are read for compatibility checks, not rewritten
+The archived seed 21 pair is local evidence of the earlier implementation.
+These records are read for compatibility checks, not rewritten
 by a refactor. The COMET adapter bytes remain unchanged, preserving the existing
 prediction/cache fingerprint. Source changes elsewhere are represented by the
 new archive schema and the repository history. `metadata/environment.json` also

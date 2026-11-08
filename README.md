@@ -2,17 +2,13 @@
 
 **Black-box variational quantum search for lipid nanoparticle compositions.**
 
-LipoQ is a research codebase developed for IBM Quantum Qiskit Fall Fest. A shallow parameterized circuit generates LNP formulations, a frozen pretrained [COMET](https://github.com/alvinchangw/COMET) model scores them, and first-order SPSA updates the circuit to increase the mean predicted score. A separate random-search baseline evaluates the same number of distinct formulations.
+LipoQ is a research codebase for quantum-assisted lipid nanoparticle design. A shallow parameterized circuit generates LNP formulations, a frozen pretrained [COMET](https://github.com/alvinchangw/COMET) model scores them, and first-order SPSA updates the circuit to increase the mean predicted score. A separate random-search baseline evaluates the same number of distinct formulations.
 
 Only the circuit parameters are trained. COMET predictions are ranking scores—not measured delivery efficacy, probabilities, or efficacy percentages. The experiments use a local simulator and do not establish quantum advantage.
 
 ## Workflow
 
-```text
-Circuit parameters → measured bitstrings → lipid identities + molar fractions
-        ↑                                               ↓
-   SPSA update ← negative shot-weighted mean ← frozen COMET predictions
-```
+![LipoQ workflow: quantum circuit, composition decoding, frozen COMET evaluation, SPSA updates, and matched random baseline](docs/assets/workflow.svg)
 
 Each formulation contains one ionizable lipid, one phospholipid, one sterol, and one PEG lipid. Fractions are decoded from a feasible integer grid and sum exactly to one. Duplicate formulations share cached predictions; the best candidate is retained across all evaluations, including SPSA perturbations.
 
@@ -81,33 +77,6 @@ Random results are written to `results/lnp_search/random/seed-<seed>/run-<timest
 This reads existing records only and creates combined figures across seeds. It uses the latest run per seed, rejects incompatible settings, preserves actual stopping lengths, and labels unfinished runs as snapshots. Add `--complete-only`, `--window 5`, or `--output <directory>` as needed.
 
 Module alternatives are `python -m vqa` and `python -m random_search`. The standalone plotting wrapper remains available as `scripts/plot_training.py`.
-
-## Submission notebook
-
-[`notebooks/LipoQ_Submission.ipynb`](notebooks/LipoQ_Submission.ipynb) is the **single-file submission**, below the 20 MB limit. Submit this `.ipynb` alone. It embeds the project source, configuration, compact real experiment evidence, executed tables, and figures. No repository checkout, ZIP, or companion data files are needed to read or run the submitted notebook.
-
-To read it, open the saved notebook without executing. To rerun it independently, select a Python 3.12 kernel and Run All from a writable directory. Setup cells restore the embedded source and evidence into `lipoq_workspace`, install tested dependencies when needed, and download the pinned official COMET source and checkpoint. The approximately 586 MiB checkpoint is external to the submission file, so the first run requires internet access and Git. Verified cached assets allow offline reruns. Optional environment variables `LIPOQ_WORKSPACE`, `LIPOQ_COMET_REPO`, and `LIPOQ_COMET_CHECKPOINT` customize these locations.
-
-The submitted notebook is a frozen, independently runnable snapshot; repository refactors do not rewrite it. The embedded evidence comes from `notebooks/data/`. It contains the completed seed 21 VQA/random pair and explicitly marks seeds 22 and 23 as unavailable. Checks cover all 16,384 encoded states, archived shot-weighted means, and exact generation probabilities of the best discovered composition. No exhaustive COMET optimum, exact full-space mean, or continuous refinement is claimed.
-
-After the normal installation and COMET asset setup, execute the notebook with:
-
-```bash
-uv pip install --python .venv/bin/python -r requirements-notebook.lock
-.venv/bin/python scripts/execute_notebook.py
-```
-
-Execution runs a real COMET preflight, one example prediction, and a three-update demonstration with 32 shots per call. Full main experiments are not launched. Demo outputs are isolated in the generated workspace. This optional helper selects the current Python environment and reuses already-downloaded repository assets; it is not required by the submitted notebook.
-
-After completing additional seeds, refresh the snapshot and rerun the notebook:
-
-```bash
-.venv/bin/python scripts/prepare_notebook_data.py --seeds 21 22 23
-.venv/bin/python scripts/build_submission_notebook.py
-.venv/bin/python scripts/execute_notebook.py
-```
-
-Snapshot preparation only reads and verifies existing archives. It selects the latest completed VQA per requested seed and the latest completed random run referencing that exact VQA archive, retaining source-file hashes and marking missing runs explicitly. The build step embeds current source and evidence and clears stale cell outputs before re-execution. Choose a fresh `LIPOQ_WORKSPACE` if previously generated source differs from the new bundle.
 
 ## Default experiment
 

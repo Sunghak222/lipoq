@@ -33,3 +33,11 @@ README.ko*.md
 .vscode/
 .DS_Store
 
+# Retired competition artifacts retained locally
+/notebooks/LipoQ_Submission.ipynb
+/notebooks/data/experiment_snapshot.json.gz
+/notebooks/data/manifest.json
+/scripts/build_submission_notebook.py
+/scripts/execute_notebook.py
+/scripts/prepare_notebook_data.py
+/requirements-notebook.lock
